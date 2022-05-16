@@ -1,3 +1,5 @@
+#coding=utf-8
+
 import sys
 import os
 import shutil
@@ -7,13 +9,13 @@ from calcu_codefile_lines import VerilogFile
 # 工程目录
 GLOBAL_PROJ_DIR = '../'
 # Linux系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
-GLOBAL_LINUX_XILINX_INSTALL_DIR = '/opt/joat/'
+GLOBAL_LINUX_XILINX_INSTALL_DIR = '/tools/'
 # Windows系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
-GLOBAL_WIN_XILINX_INSTALL_DIR = 'D:/'
+GLOBAL_WIN_XILINX_INSTALL_DIR = 'E:/'
 
 # 备用Vivado安装目录路径：用于解决不同版本的Vivado软件未安装在同一分区内的情况 需自行设置
 # 含义为Vivado文件夹所在目录路径
-GLOBAL_VIVADO_INSTALL_DIR_SPARE_1 = 'D:/Xilinx/'
+GLOBAL_VIVADO_INSTALL_DIR_SPARE_1 = 'E:/Xilinx/'
 GLOBAL_VIVADO_INSTALL_DIR_SPARE_2 = 'C:/Xilinx/'
 
 # 获取并返回对应文件或目录路径名列表
@@ -242,7 +244,7 @@ class VivadoProj():
         # 解析xml格式的xpr文件，根据文件内容初始化相关参数
         self.InitSuccess = self.parseXprFile()
         # 初始化获取仿真目录路径
-        self.InitSuccess = self.getSimDirs()
+        #self.InitSuccess = self.getSimDirs()
         # 初始化相关基础命令字符串
         self.InitSuccess = self.getBasicCMD()
 
@@ -538,7 +540,7 @@ class VivadoProj():
             return False
         # 组合生成脚本命令字符串并执行
         VivadoBatchSimCmd = 'vivado -mode batch -source ' + TclFilePath +' -nojournal -nolog ' + self.XPR_FILE_PATH 
-        # print(self.SourceSettingsFileCmd + self.CMD_CONCAT_OPERATOR + VivadoBatchSimCmd)
+        print(self.SourceSettingsFileCmd + self.CMD_CONCAT_OPERATOR + VivadoBatchSimCmd)
         os.system(self.SourceSettingsFileCmd + self.CMD_CONCAT_OPERATOR + VivadoBatchSimCmd)
         return True
 
@@ -651,7 +653,7 @@ class VivadoProj():
         print('11：重新解析工程xpr文件，并初始化参数')
         print('12：统计工程中Verilog和VHDL代码文件的行数 -> ./calcu_code_files_lines/')
         print('#######################################################################')
-        self.InputNum = input('请输入：')
+        self.InputNum = str(input('请输入：'))
         return True
 
     # 打开工程的GUI界面
@@ -881,6 +883,6 @@ class VivadoProj():
             elif self.InputNum == '12':
                 self.calcuCodeFileLines()
             else:
-                print('Error: Invalid num!')
+                print('Error: Invalid num! (' + self.InputNum +')')
         return True
 

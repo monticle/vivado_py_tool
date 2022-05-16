@@ -1,3 +1,5 @@
+#coding=utf-8
+
 import sys
 import os
 from vivado_batch_sim import VivadoProj
