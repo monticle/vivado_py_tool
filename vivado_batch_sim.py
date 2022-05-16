@@ -7,7 +7,9 @@ from xml.dom.minidom import parse
 from calcu_codefile_lines import VerilogFile
 
 # 工程目录
-GLOBAL_PROJ_DIR = '../'
+GLOBAL_PROJ_DIR = '../../vivado/'
+# bit目录
+GLOBAL_BIT_DIR = '../../mcs/'
 # Linux系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
 GLOBAL_LINUX_XILINX_INSTALL_DIR = '/tools/'
 # Windows系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
@@ -152,15 +154,19 @@ def convertToUTF_8InNewFile(OriginFilePath, NewFilePath):
 class VivadoProj():
     def __init__(self, 
                 proj_dir                   = GLOBAL_PROJ_DIR, 
+                bit_dir                    = GLOBAL_BIT_DIR, 
                 linux_xilinx_install_dir   = GLOBAL_LINUX_XILINX_INSTALL_DIR, 
                 win_xilinx_install_dir     = GLOBAL_WIN_XILINX_INSTALL_DIR, 
                 vivado_install_dir_spare_1 = GLOBAL_VIVADO_INSTALL_DIR_SPARE_1, 
                 vivado_install_dir_spare_2 = GLOBAL_VIVADO_INSTALL_DIR_SPARE_2, 
                 sim_tcl_file_name          = 'sim.tcl', 
                 synth_tcl_file_name        = 'synth.tcl', 
-                impl_tcl_file_name         = 'impl.tcl'):
+                impl_tcl_file_name         = 'impl.tcl', 
+                bit_tcl_file_name         = 'bit.tcl'):
         # 工程目录
         self.PROJ_DIR = proj_dir
+        # Bit目录
+        self.BIT_DIR = bit_dir
         # Linux系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
         self.LINUX_XILINX_INSTALL_DIR = linux_xilinx_install_dir
         # Windows系统Xilinx相关软件安装目录（Xilinx文件夹所在目录，需自行设置）
@@ -173,6 +179,7 @@ class VivadoProj():
         self.SIM_TCL_FILE_NAME   = sim_tcl_file_name
         self.SYNTH_TCL_FILE_NAME = synth_tcl_file_name
         self.IMPL_TCL_FILE_NAME  = impl_tcl_file_name
+        self.BIT_TCL_FILE_NAME  = bit_tcl_file_name
         # 当前工程xpr文件路径
         self.XPR_FILE_PATH = ''
         # 当前工程版本
@@ -490,9 +497,19 @@ class VivadoProj():
             TclResFile = open(self.SYNTH_TCL_FILE_NAME,'w')
             TclResFile.writelines('reset_run ' + self.RunSynthActiveDict['Id'] + '\n')
             TclResFile.writelines('launch_runs ' + self.RunSynthActiveDict['Id'] + '\n')
+            TclResFile.writelines('wait_on_run ' + self.RunSynthActiveDict['Id'] + '\n')
+            TclResFile.writelines('open_run ' + self.RunSynthActiveDict['Id'] + '\n')
             TclResFile.close()
             TclResFile = open(self.IMPL_TCL_FILE_NAME,'w')
-            TclResFile.writelines('launch_runs ' + self.RunImplActiveDict['Id'] + ' -to_step write_bitstream' + '\n')
+            TclResFile.writelines('reset_run ' + self.RunImplActiveDict['Id'] + '\n')
+            TclResFile.writelines('launch_runs ' + self.RunImplActiveDict['Id'] + ' -jobs 12\n')
+            TclResFile.writelines('wait_on_run ' + self.RunImplActiveDict['Id'] + '\n')
+            TclResFile.writelines('open_run ' + self.RunImplActiveDict['Id'] + '\n')
+            TclResFile.close()
+            TclResFile = open(self.BIT_TCL_FILE_NAME,'w')
+            TclResFile.writelines('open_run ' + self.RunImplActiveDict['Id'] + '\n')
+            TclResFile.writelines('write_bitstream ' + self.BIT_DIR + '/[current_project].bit -force\n')
+            TclResFile.writelines('write_debug_probes -no_partial_ltxfile -quiet -force ' + self.BIT_DIR + '/[current_project].ltx\n')
             TclResFile.close()
             print('-------------------------SrcSet Configuration--------------------------')
             for FileSet in self.FileSets.getElementsByTagName('FileSet'):
@@ -523,7 +540,7 @@ class VivadoProj():
             self.ActiveSimSetBehaveSimDir = self.ActiveSimSetBehaveDir + self.ConfigurationOptionDict['TargetSimulator'].lower() + '/'
         else:
             self.ActiveSimSetBehaveSimDir = self.ActiveSimSetBehaveDir
-        # print(ActiveSimSetBehaveSimDir)
+        print(ActiveSimSetBehaveSimDir)
         if os.path.isdir(self.ActiveSimSetBehaveSimDir) == False:
             print('Error: The sim file path "' + self.ActiveSimSetBehaveSimDir + '" is not exist!')
             return False
@@ -640,18 +657,21 @@ class VivadoProj():
             return False
         self.InputNum = ''
         print('#######################################################################')
-        print('1 ：退出')
-        print('2 ：打开GUI工程')
-        print('3 ：全流程仿真 - Compile Elaborate Simulate（可用于修改了代码之后重新仿真）')
-        print('4 ：重新生成脚本，全流程仿真（用于添加了新的代码文件或IP核之后重新仿真）')
-        print('5 ：单流程仿真 - Simulate（仅用于未做任何修改的仿真）')
-        print('6 ：提取代码文件并转换为UTF-8编码 -> ./copy_code_files/')
-        print('7 ：提取IP核xci文件 -> ./copy_ip_files/')
-        print('8 ：进行综合 - Synthesis')
-        print('9 ：进行实现 - Implement')
+        print('0 ：退出')
+        print('1 ：打开GUI工程')
+        print('2 ：全流程仿真 - Compile Elaborate Simulate（可用于修改了代码之后重新仿真）')
+        print('3 ：重新生成脚本，全流程仿真（用于添加了新的代码文件或IP核之后重新仿真）')
+        print('4 ：单流程仿真 - Simulate（仅用于未做任何修改的仿真）')
+        print('5 ：进行综合 - Synthesis')
+        print('6 ：进行实现 - Implement')
+        print('7 ：生成Bit文件 - BitStream')
+        print('8 ：进行综合+实现 - Synthesis+Implement')
+        print('9 ：进行综合+实现+生成Bit - Synthesis+Implement+BitStream')
         print('10：生成EDF网表文件和对应的Verilog、VHDL源文件')
         print('11：重新解析工程xpr文件，并初始化参数')
-        print('12：统计工程中Verilog和VHDL代码文件的行数 -> ./calcu_code_files_lines/')
+        print('12 ：提取代码文件并转换为UTF-8编码 -> ./copy_code_files/')
+        print('13 ：提取IP核xci文件 -> ./copy_ip_files/')
+        print('14：统计工程中Verilog和VHDL代码文件的行数 -> ./calcu_code_files_lines/')
         print('#######################################################################')
         self.InputNum = str(input('请输入：'))
         return True
@@ -835,18 +855,18 @@ class VivadoProj():
             # 交互界面
             self.startInteraction()
             # 判断交互结果并执行对应功能
-            if self.InputNum == '1':
+            if self.InputNum == '0':
                 break
-            elif self.InputNum == '2':
+            elif self.InputNum == '1':
                 if self.VivadoExist:
                     self.openGUIProj()
                 else:
                     print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
-            elif self.InputNum == '3':
+            elif self.InputNum == '2':
                 self.startCompile()
                 self.startElaborate()
                 self.startSimulate()
-            elif self.InputNum == '4':
+            elif self.InputNum == '3':
                 if self.VivadoExist:
                     self.sourceTclByBatchMode(self.SIM_TCL_FILE_NAME)
                     self.startCompile()
@@ -854,23 +874,37 @@ class VivadoProj():
                     self.startSimulate()
                 else:
                     print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
-            elif self.InputNum == '5':
+            elif self.InputNum == '4':
                 if self.VivadoExist:
                     self.startSimulate()
                 else:
                     print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
-            elif self.InputNum == '6':
-                self.getAllCodeFiles()
-            elif self.InputNum == '7':
-                self.getAllXciFiles()
-            elif self.InputNum == '8':
+            elif self.InputNum == '5':
                 if self.VivadoExist:
                     self.sourceTclByBatchMode(self.SYNTH_TCL_FILE_NAME)
                 else:
                     print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
-            elif self.InputNum == '9':
+            elif self.InputNum == '6':
                 if self.VivadoExist:
                     self.sourceTclByBatchMode(self.IMPL_TCL_FILE_NAME)
+                else:
+                    print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
+            elif self.InputNum == '7':
+                if self.VivadoExist:
+                    self.sourceTclByBatchMode(self.BIT_TCL_FILE_NAME)
+                else:
+                    print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
+            elif self.InputNum == '8':
+                if self.VivadoExist:
+                    self.sourceTclByBatchMode(self.SYNTH_TCL_FILE_NAME)
+                    self.sourceTclByBatchMode(self.IMPL_TCL_FILE_NAME)
+                else:
+                    print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
+            elif self.InputNum == '9':
+                if self.VivadoExist:
+                    self.sourceTclByBatchMode(self.SYNTH_TCL_FILE_NAME)
+                    self.sourceTclByBatchMode(self.IMPL_TCL_FILE_NAME)
+                    self.sourceTclByBatchMode(self.BIT_TCL_FILE_NAME)
                 else:
                     print('Error: There is no Vivado' + self.PROJ_VERSION + ' in the ' + self.VIVADO_DIR + ' of this os!')
             elif self.InputNum == '10':
@@ -881,6 +915,10 @@ class VivadoProj():
             elif self.InputNum == '11':
                 self.__init__()
             elif self.InputNum == '12':
+                self.getAllCodeFiles()
+            elif self.InputNum == '13':
+                self.getAllXciFiles()
+            elif self.InputNum == '14':
                 self.calcuCodeFileLines()
             else:
                 print('Error: Invalid num! (' + self.InputNum +')')
